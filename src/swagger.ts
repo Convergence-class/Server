@@ -9,6 +9,7 @@ const options: swaggerJsdoc.Options = {
       description: '감정기록 · 사용시간 · CES-D · 챗봇 · 알림 · 동의 · 카드 상태 API',
     },
     servers: [{ url: 'http://localhost:3000/api' }],
+    security: [{ BearerAuth: [] }],
     components: {
       securitySchemes: {
         BearerAuth: {
@@ -32,6 +33,7 @@ const options: swaggerJsdoc.Options = {
         post: {
           tags: ['Auth'],
           summary: '회원가입',
+          security: [],
           requestBody: {
             required: true,
             content: {
@@ -70,6 +72,7 @@ const options: swaggerJsdoc.Options = {
         post: {
           tags: ['Auth'],
           summary: '로그인',
+          security: [],
           requestBody: {
             required: true,
             content: {

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import authRouter from './auth';
 import emotionRouter from './emotion';
 import usageRouter from './usage';
 import cesdRouter from './cesd';
@@ -9,6 +10,7 @@ import statusRouter from './status';
 
 const router = Router();
 
+router.use('/auth', authRouter);
 router.use('/emotion', emotionRouter);
 router.use('/usage', usageRouter);
 router.use('/cesd', cesdRouter);
