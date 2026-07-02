@@ -1,8 +1,20 @@
 import { Router } from 'express';
 import emotionRouter from './emotion';
+import usageRouter from './usage';
+import cesdRouter from './cesd';
+import chatRouter from './chat';
+import noticeRouter from './notice';
+import consentRouter from './consent';
+import statusRouter from './status';
 
 const router = Router();
 
 router.use('/emotion', emotionRouter);
+router.use('/usage', usageRouter);
+router.use('/cesd', cesdRouter);
+router.use('/chat', chatRouter);
+router.use('/notice', noticeRouter);
+router.use('/consent', consentRouter);
+router.use('/status', statusRouter);
 
 export default router;
