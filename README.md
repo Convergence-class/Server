@@ -11,13 +11,9 @@ Express + TypeScript + Supabase + Google Gemini 기반 백엔드 서버
 - JWT 인증 미들웨어 — `/auth/signup`, `/auth/login` 외 모든 API에 자동 적용
 - 회원가입 시 `public.users` 프로필 테이블 자동 생성 (DB 트리거)
 
-### 감정 기록 (Emotion)
-- 이모지 + 메모 형식의 감정 기록 저장
-- 유저별 전체 감정 이력 조회 (최신순)
-
 ### 스마트폰 사용시간 (Usage)
 - 앱별 사용시간(분) 저장
-- 날짜별 총 사용시간 + 당일 감정 이력 통합 조회
+- 날짜별 총 사용시간 조회
 
 ### 우울 자가진단 — CES-D (CESD)
 - 20문항 설문 응답 저장 및 자동 점수 계산
@@ -118,16 +114,6 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
--- 감정 기록
-CREATE TABLE emotion_logs (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    TEXT NOT NULL,
-  emoji      TEXT NOT NULL,
-  note       TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-CREATE INDEX idx_emotion_logs_user_id ON emotion_logs(user_id);
 
 -- 사용시간
 CREATE TABLE usage_logs (
@@ -260,7 +246,7 @@ npm start        # 빌드 결과 실행
 
 ## 인증 방식
 
-Supabase Auth 기반 JWT 인증입니다.  
+Supabase Auth 기반 JWT 인증입니다.
 로그인 후 발급된 `access_token`을 모든 요청 헤더에 포함합니다.
 
 ```
@@ -328,39 +314,12 @@ Authorization: Bearer <access_token>
 
 ---
 
-### Emotion `/api/emotion`
-
-| Method | 경로 | 설명 |
-|--------|------|------|
-| POST | `/api/emotion/log` | 이모지 감정기록 저장 |
-| GET | `/api/emotion/history` | 감정 이력 전체 조회 |
-
-#### POST /api/emotion/log
-```json
-// Request
-{ "user_id": "user123", "emoji": "😊", "note": "오늘 기분 좋음" }
-
-// Response 201
-{
-  "message": "감정 기록 저장 완료",
-  "data": { "id": "uuid", "user_id": "user123", "emoji": "😊", "note": "오늘 기분 좋음", "created_at": "..." }
-}
-```
-
-#### GET /api/emotion/history?user_id=user123
-```json
-// Response 200
-{ "data": [{ "id": "uuid", "emoji": "😊", "note": "오늘 기분 좋음", "created_at": "..." }] }
-```
-
----
-
 ### Usage `/api/usage`
 
 | Method | 경로 | 설명 |
 |--------|------|------|
 | POST | `/api/usage/log` | 스마트폰 사용시간 저장 |
-| GET | `/api/usage/summary` | 사용시간 + 감정 통합 조회 |
+| GET | `/api/usage/summary` | 날짜별 총 사용시간 조회 |
 
 #### POST /api/usage/log
 ```json
@@ -380,8 +339,7 @@ Authorization: Bearer <access_token>
   "data": {
     "date": "2026-07-02",
     "total_usage_minutes": 120,
-    "usage_logs": [{ "app_name": "YouTube", "duration_minutes": 45, "logged_at": "..." }],
-    "emotion_logs": [{ "emoji": "😊", "note": "기분 좋음", "created_at": "..." }]
+    "usage_logs": [{ "app_name": "YouTube", "duration_minutes": 45, "logged_at": "..." }]
   }
 }
 ```
@@ -539,7 +497,6 @@ Authorization: Bearer <access_token>
 |--------|------|
 | `auth.users` | Supabase 자동 생성 (회원 인증 정보) |
 | `public.users` | 프로필 확장 테이블 (회원가입 시 트리거로 자동 생성) |
-| `emotion_logs` | 이모지 감정기록 |
 | `usage_logs` | 앱별 사용시간 |
 | `cesd_questions` | CES-D 20문항 고정 데이터 |
 | `cesd_results` | CES-D 응답 및 점수 |
@@ -558,7 +515,6 @@ src/
 ├── routes/
 │   ├── index.ts
 │   ├── auth.ts
-│   ├── emotion.ts
 │   ├── usage.ts
 │   ├── cesd.ts
 │   ├── chat.ts
@@ -567,7 +523,6 @@ src/
 │   └── status.ts
 ├── controllers/
 │   ├── authController.ts
-│   ├── emotionController.ts
 │   ├── usageController.ts
 │   ├── cesdController.ts
 │   ├── chatController.ts
@@ -577,7 +532,6 @@ src/
 ├── services/
 │   ├── supabase.ts           # Supabase 클라이언트
 │   ├── authService.ts
-│   ├── emotionService.ts
 │   ├── usageService.ts
 │   ├── cesdService.ts
 │   ├── chatService.ts
@@ -588,5 +542,5 @@ src/
 │   ├── authMiddleware.ts     # JWT 검증 (signup·login 제외)
 │   └── errorHandler.ts
 └── types/
-    └── express.d.ts          # req.user 타입 확장
+    └── express.d.ts
 ```
