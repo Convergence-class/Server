@@ -1,4 +1,5 @@
-import { supabase } from './supabase';
+﻿import { supabase } from './supabase';
+import { isSupabaseStorageError, memoryStore } from './memoryStore';
 
 export interface ConsentData {
   user_id: string;
@@ -8,16 +9,20 @@ export interface ConsentData {
 }
 
 export const upsertConsent = async (data: ConsentData) => {
+  const row = { ...data, updated_at: new Date().toISOString() };
+
   const { data: result, error } = await supabase
     .from('consents')
-    .upsert(
-      { ...data, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id' }
-    )
+    .upsert(row, { onConflict: 'user_id' })
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (!isSupabaseStorageError(error)) throw new Error(error.message);
+    memoryStore.consents.set(data.user_id, row);
+    return row;
+  }
+
   return result;
 };
 
@@ -28,7 +33,10 @@ export const getConsent = async (user_id: string) => {
     .eq('user_id', user_id)
     .single();
 
-  // PGRST116: 결과 없음 (정상 케이스)
-  if (error && error.code !== 'PGRST116') throw new Error(error.message);
-  return data ?? null;
+  if (error && error.code !== 'PGRST116') {
+    if (!isSupabaseStorageError(error)) throw new Error(error.message);
+    return memoryStore.consents.get(user_id) ?? null;
+  }
+
+  return data ?? memoryStore.consents.get(user_id) ?? null;
 };
